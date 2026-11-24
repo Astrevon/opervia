@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Building2, FileText, LayoutDashboard, LogOut, Menu, Settings, Users, X, FlaskConical } from "lucide-react";
-import { Avatar, cx, MadeByOpervia, OperviaMark } from "@/components/ui";
+import { Building2, CreditCard, FileText, LayoutDashboard, LogOut, Menu, Settings, ShieldAlert, ShieldCheck, Users, X, FlaskConical } from "lucide-react";
+import { Avatar, cx, LinkButton, MadeByOpervia, Notice, OperviaMark } from "@/components/ui";
 import { NotificationBell } from "@/components/notification-bell";
 import { signOutAction } from "@/app/actions/auth";
 import { ROLES, type Role } from "@/lib/constants";
@@ -16,8 +16,12 @@ const NAV: NavItem[] = [
   { href: "/content", label: "Content", icon: FileText },
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/team", label: "Team", icon: Users, adminOnly: true },
+  { href: "/billing", label: "Billing", icon: CreditCard, adminOnly: true },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+/** Subscription state shown by the shell. Enforcement itself happens in the database. */
+export type ShellAccess = { status: string | null; serviceActive: boolean; isBillingAdmin: boolean } | null;
 
 export function AgencyShell({
   children,
@@ -26,6 +30,7 @@ export function AgencyShell({
   userName,
   userEmail,
   role,
+  access = null,
 }: {
   children: ReactNode;
   orgName: string;
@@ -33,6 +38,7 @@ export function AgencyShell({
   userName: string;
   userEmail: string;
   role: Role;
+  access?: ShellAccess;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -51,6 +57,33 @@ export function AgencyShell({
   }, [mobileOpen]);
 
   const nav = NAV.filter((n) => !n.adminOnly || role === "admin");
+  const suspended = access ? !access.serviceActive : false;
+  const onBilling = pathname === "/billing" || pathname.startsWith("/billing/");
+
+  // While the subscription is suspended the database already returns no
+  // content and refuses every workflow action; this explains why.
+  const gate = suspended && !onBilling ? (
+    <div className="mx-auto max-w-xl py-10">
+      <Notice tone="red" icon={<ShieldAlert className="size-5 text-[#fca5a5]" />} title="This workspace is suspended">
+        <p>
+          {access?.status === "cancelled"
+            ? "The Opervia subscription for this workspace has been cancelled, so the approval workflow is unavailable."
+            : "The Opervia subscription for this workspace is suspended, so content, approvals and scheduling are paused."}{" "}
+          Your content, settings and history are safe and nothing has been deleted.
+        </p>
+        <p className="mt-2">
+          {role === "admin"
+            ? "Open Billing to see why, which invoice is unpaid and how to submit your payment proof."
+            : "Please ask your workspace admin to check the Billing page."}
+        </p>
+        {role === "admin" ? (
+          <LinkButton href="/billing" className="mt-4" size="sm">
+            Open Billing
+          </LinkButton>
+        ) : null}
+      </Notice>
+    </div>
+  ) : null;
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -62,6 +95,14 @@ export function AgencyShell({
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 px-3" aria-label="Main">
+        {access?.isBillingAdmin ? (
+          <Link
+            href="/admin"
+            className="mb-2 flex items-center gap-3 rounded-lg border border-[#1e3a70] bg-[#0b1730] px-3 py-2 text-[13px] font-medium text-[#8fb8ff] hover:text-ink"
+          >
+            <ShieldCheck className="size-[17px]" /> Opervia billing admin
+          </Link>
+        ) : null}
         {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -77,6 +118,9 @@ export function AgencyShell({
               {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand-bright" /> : null}
               <Icon className={cx("size-[17px]", active ? "text-brand-bright" : "text-subtle group-hover:text-ink-2")} />
               {label}
+              {href === "/billing" && access && (access.status === "overdue" || suspended) ? (
+                <span className="ml-auto size-2 rounded-full bg-[#f87171]" aria-label="Needs attention" />
+              ) : null}
             </Link>
           );
         })}
@@ -133,7 +177,16 @@ export function AgencyShell({
         <NotificationBell itemHref="agency" />
       </header>
 
-      <main className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
+      {access?.status === "overdue" && role === "admin" && !onBilling ? (
+        <div className="border-b border-[#5c2330] bg-[#220f15] px-4 py-2 text-center text-[12.5px] text-[#fda4af]">
+          A payment is overdue.{" "}
+          <Link href="/billing" className="font-medium underline">
+            Pay now
+          </Link>{" "}
+          to avoid suspension after the grace period.
+        </div>
+      ) : null}
+      <main className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{gate ?? children}</main>
     </div>
   );
 }

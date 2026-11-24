@@ -15,6 +15,8 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const session = await getSession();
   if (!session) redirect("/login");
   if (session.role) redirect(homeFor(session));
+  // Opervia billing admins don't need an agency workspace of their own.
+  if (session.isBillingAdmin && !invite) redirect("/admin");
 
   const supabase = await createClient();
   const signOut = (
