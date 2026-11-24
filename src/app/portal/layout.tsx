@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { LogOut, UserRound } from "lucide-react";
-import { MadeByOpervia, OperviaMark } from "@/components/ui";
+import { LogOut, ShieldAlert, UserRound } from "lucide-react";
+import { MadeByOpervia, Notice, OperviaMark } from "@/components/ui";
 import { NotificationBell } from "@/components/notification-bell";
 import { signOutAction } from "@/app/actions/auth";
-import { requireClientUser } from "@/lib/session";
+import { getWorkspaceAccess, requireClientUser } from "@/lib/session";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const s = await requireClientUser();
+  const access = await getWorkspaceAccess();
+  const suspended = access ? !access.serviceActive : false;
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur-md">
@@ -35,7 +37,18 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         ) : null}
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+        {suspended ? (
+          <div className="mx-auto max-w-xl py-6">
+            <Notice tone="amber" icon={<ShieldAlert className="size-5 text-[#fcd34d]" />} title="Content review is temporarily unavailable">
+              {s.org.name}&apos;s portal access is paused right now, so there&apos;s nothing to review. Nothing you approved earlier has been lost. Please
+              contact {s.org.name} if you have questions.
+            </Notice>
+          </div>
+        ) : (
+          children
+        )}
+      </main>
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-subtle sm:flex-row sm:px-6">
           <span>Content prepared for you by {s.org.name}.</span>

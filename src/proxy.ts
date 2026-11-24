@@ -4,7 +4,8 @@ import { SUPABASE_PUBLIC_KEY, SUPABASE_URL } from "@/lib/env";
 import { requestOrigin } from "@/lib/origin";
 import { DEMO_COOKIE, isDemoMode } from "@/lib/demo/mode";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
+// /api/cron authenticates itself with CRON_SECRET (no user session).
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth", "/api/cron"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out

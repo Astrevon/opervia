@@ -12,6 +12,10 @@ It turns the documented process **NSD-MOPS-SOP-002 Client Content Approval & Pub
 
 See **[docs/SOP-WORKFLOW.md](docs/SOP-WORKFLOW.md)** for how the SOP maps to the product, the business-rule decisions taken, and the open questions.
 
+**Subscriptions & billing:** every agency workspace has a monthly subscription paid by manual bank transfer. Clients upload transfer receipts on **Billing**, and Opervia billing admins verify them in the **/admin** console. Unpaid workspaces are suspended automatically after the grace period, enforced in the database. See **[docs/BILLING.md](docs/BILLING.md)**.
+
+> **Note:** the `demo`, `seed:demo`, `lint` and `test:integration` scripts described below are not included in this copy of the repository (there is no `scripts/` folder). Available scripts: `dev`, `dev:lan`, `build`, `start`, `start:lan`, `typecheck`. The billing system has its own database test: `supabase/tests/billing_e2e.sql`.
+
 ---
 
 ## Quick preview: demo mode (no Supabase needed)
@@ -118,6 +122,7 @@ npm run test:integration   # use a DEVELOPMENT project — it creates throw-away
 3. Add the environment variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL=https://your-app.vercel.app`. **Do not add the secret key.**
 4. Deploy. Then, in Supabase **Authentication → URL Configuration**, set the Site URL to the production URL and add `https://your-app.vercel.app/**` to the Redirect URLs.
 5. Keep demo data in a separate Supabase project if you show the demo publicly, so demo and real customer data never share a database.
+6. **Billing schedule:** the daily billing check runs inside Supabase (`pg_cron`, 00:05 Asia/Jakarta), so nothing is needed in Vercel. `vercel.json` also defines an optional Vercel Cron backup that stays idle until you set `CRON_SECRET`. See [docs/BILLING.md](docs/BILLING.md#daily-cron).
 
 Other Node hosts work too: `npm run build && npm start`.
 

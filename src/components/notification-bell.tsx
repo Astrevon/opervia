@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, CheckCircle2, CornerUpLeft, Send, XCircle, CalendarClock, RotateCcw } from "lucide-react";
+import { Bell, CheckCheck, CheckCircle2, CornerUpLeft, Send, XCircle, CalendarClock, RotateCcw, Receipt, ShieldAlert, UploadCloud, Clock } from "lucide-react";
 import { cx, Spinner } from "@/components/ui";
 import { relativeTime } from "@/lib/format";
 import { fetchNotificationsAction, markNotificationsReadAction, type NotificationRow } from "@/app/actions/workspace";
@@ -15,11 +15,22 @@ const ICON: Record<string, typeof Bell> = {
   rejected: XCircle,
   scheduled: CalendarClock,
   reopened: RotateCcw,
+  invoice_issued: Receipt,
+  payment_due_soon: Clock,
+  payment_overdue: ShieldAlert,
+  payment_submitted: UploadCloud,
+  payment_confirmed: CheckCircle2,
+  payment_rejected: XCircle,
+  subscription_suspended: ShieldAlert,
+  subscription_reactivated: CheckCircle2,
+  subscription_cancelled: XCircle,
 };
+
+const BILLING_TYPES = new Set(["invoice_issued", "payment_due_soon", "payment_overdue", "payment_confirmed", "payment_rejected", "subscription_suspended", "subscription_reactivated", "subscription_cancelled"]);
 
 const POLL_MS = 30_000;
 
-export function NotificationBell({ itemHref }: { itemHref: "agency" | "client" }) {
+export function NotificationBell({ itemHref }: { itemHref: "agency" | "client" | "admin" }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationRow[] | null>(null);
   const [unread, setUnread] = useState(0);
@@ -71,7 +82,9 @@ export function NotificationBell({ itemHref }: { itemHref: "agency" | "client" }
       setUnread((u) => Math.max(0, u - 1));
       markNotificationsReadAction([n.id]);
     }
-    if (n.item_id) router.push(itemHref === "client" ? `/portal/review/${n.item_id}` : `/content/${n.item_id}`);
+    if (n.type === "payment_submitted") router.push("/admin/verification");
+    else if (BILLING_TYPES.has(n.type)) router.push(itemHref === "admin" ? "/admin" : "/billing");
+    else if (n.item_id) router.push(itemHref === "client" ? `/portal/review/${n.item_id}` : `/content/${n.item_id}`);
   }
 
   async function markAll() {
